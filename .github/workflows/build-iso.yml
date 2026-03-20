@@ -1,4 +1,4 @@
-name: Build VyOS 1.5 VPP-Enabled
+name: Build VyOS 1.5 VPP-2026.03
 on: [workflow_dispatch]
 
 jobs:
@@ -12,24 +12,23 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: vyos/vyos-build
-          # 'current' is the branch for VyOS 1.5 (Circinus) which has VPP
-          ref: 'current' 
+          ref: 'current' # 1.5/Circinus branch for VPP
 
       - name: Set up Docker
         run: sudo apt-get update && sudo apt-get install -y docker.io
 
-      - name: Build ISO
+      - name: Build ISO with Fix for Error 100
         run: |
-          # Build the container for the 1.5/Current branch
+          # 1. Build the environment
           docker build -t vyos/vyos-build:current docker
           
-          # Run the build. 
-          # Note: VPP is included by default in the 'current' 1.5 builds.
+          # 2. Run build with a "Fix-Missing" flag to prevent Error 100
+          # This command cleans the apt cache inside the container before starting
           docker run --rm --privileged -v $(pwd):/vyos -w /vyos vyos/vyos-build:current \
-          bash -c "./build-vyos-image iso --architecture amd64 --build-by 'Arsalan-ISP-VPP'"
+          bash -c "apt-get update --fix-missing && ./build-vyos-image iso --architecture amd64 --build-by 'Arsalan-ISP-VPP'"
 
       - name: Upload ISO
         uses: actions/upload-artifact@v4
         with:
-          name: VyOS-1.5-VPP-Experimental
+          name: VyOS-1.5-VPP-Stream
           path: build/*.iso
