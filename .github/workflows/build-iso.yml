@@ -1,4 +1,4 @@
-name: Build VyOS 1.5 VPP
+name: Build VyOS Stream 2026.03
 on: [workflow_dispatch]
 
 jobs:
@@ -6,33 +6,37 @@ jobs:
     runs-on: ubuntu-latest
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
     steps:
-      - name: Free Disk Space on GitHub Runner
+      - name: Free Disk Space
         uses: jlumbroso/free-disk-space@main
         with:
           tool-cache: false
           docker-images: false
 
-      - name: Checkout VyOS Build Repo
+      - name: Checkout VyOS Build Repo (Stream 2026.03)
         uses: actions/checkout@v4
         with:
           repository: vyos/vyos-build
-          ref: 'current' 
+          ref: 'circinus-2026.03'   # ← pinned to the exact Stream release tag
 
-      - name: Set up Docker
-        run: sudo apt-get update && sudo apt-get install -y docker.io
+      - name: Pull VyOS build container
+        run: docker pull vyos/vyos-build:current
 
       - name: Build ISO
         run: |
-          # 1. Pull the official VyOS build environment
-          docker pull vyos/vyos-build:current
-          
-          # 2. Run the build command with SUDO inside the container
-          docker run --rm --privileged -v $(pwd):/vyos -w /vyos vyos/vyos-build:current \
-          bash -c "sudo apt-get update --fix-missing && sudo ./build-vyos-image iso --architecture amd64 --build-by 'GitHub-Actions-Builder'"
+          docker run --rm --privileged \
+            -v "$(pwd)":/vyos \
+            -w /vyos \
+            vyos/vyos-build:current \
+            sudo ./build-vyos-image iso \
+              --architecture amd64 \
+              --build-by 'GitHub-Actions-Builder' \
+              --build-type release
 
       - name: Upload ISO Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: VyOS-1.5-VPP-Stable
+          name: VyOS-Stream-2026.03-amd64
           path: build/*.iso
+          retention-days: 7
