@@ -14,11 +14,11 @@ jobs:
           tool-cache: false
           docker-images: false
 
-      - name: Checkout VyOS Build Repo (Stream 2026.03)
+      - name: Checkout VyOS Build Repo
         uses: actions/checkout@v4
         with:
           repository: vyos/vyos-build
-          ref: 'circinus-2026.03'   # ← pinned to the exact Stream release tag
+          ref: 'current'        # ← the only public branch for VyOS 1.5; there are NO release tags
 
       - name: Pull VyOS build container
         run: docker pull vyos/vyos-build:current
@@ -29,14 +29,13 @@ jobs:
             -v "$(pwd)":/vyos \
             -w /vyos \
             vyos/vyos-build:current \
-            sudo ./build-vyos-image iso \
+            sudo ./build-vyos-image generic \
               --architecture amd64 \
-              --build-by 'GitHub-Actions-Builder' \
-              --build-type release
+              --build-by 'GitHub-Actions-Builder'
 
       - name: Upload ISO Artifact
         uses: actions/upload-artifact@v4
         with:
           name: VyOS-Stream-2026.03-amd64
-          path: build/*.iso
+          path: build/live-image-amd64.hybrid.iso
           retention-days: 7
