@@ -1,34 +1,38 @@
-name: Build VyOS 1.5 VPP-2026.03
+name: Build VyOS 1.5 VPP
 on: [workflow_dispatch]
 
 jobs:
   build:
     runs-on: ubuntu-latest
     env:
-      # Fixes the Node.js deprecation warning
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     steps:
+      - name: Free Disk Space on GitHub Runner
+        uses: jlumbroso/free-disk-space@main
+        with:
+          tool-cache: false
+          docker-images: false
+
       - name: Checkout VyOS Build Repo
         uses: actions/checkout@v4
         with:
           repository: vyos/vyos-build
-          ref: 'current' # 1.5/Circinus branch for VPP
+          ref: 'current' 
 
       - name: Set up Docker
         run: sudo apt-get update && sudo apt-get install -y docker.io
 
-      - name: Build ISO with Fix for Error 100
+      - name: Build ISO
         run: |
-          # 1. Build the environment
-          docker build -t vyos/vyos-build:current docker
+          # 1. Pull the official VyOS build environment
+          docker pull vyos/vyos-build:current
           
-          # 2. Run build with a "Fix-Missing" flag to prevent Error 100
-          # This command cleans the apt cache inside the container before starting
+          # 2. Run the build command with SUDO inside the container
           docker run --rm --privileged -v $(pwd):/vyos -w /vyos vyos/vyos-build:current \
-          bash -c "apt-get update --fix-missing && ./build-vyos-image iso --architecture amd64 --build-by 'Arsalan-ISP-VPP'"
+          bash -c "sudo apt-get update --fix-missing && sudo ./build-vyos-image iso --architecture amd64 --build-by 'GitHub-Actions-Builder'"
 
-      - name: Upload ISO
+      - name: Upload ISO Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: VyOS-1.5-VPP-Stream
+          name: VyOS-1.5-VPP-Stable
           path: build/*.iso
