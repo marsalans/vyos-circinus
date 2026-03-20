@@ -1,0 +1,40 @@
+name: Build VyOS Stream 2026.03
+on: [workflow_dispatch]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout VyOS Build Repo
+        uses: actions/checkout@v4
+        with:
+          repository: vyos/vyos-build
+          # Using the specific branch/tag for the March 2026 Stream
+          ref: 'stream/2026.03' 
+
+      - name: Set up Docker
+        run: sudo apt-get update && sudo apt-get install -y docker.io
+
+      - name: Build ISO
+        run: |
+          # 1. Build the container environment for the 2026.03 release
+          docker build -t vyos/vyos-build:2026.03 docker
+          
+          # 2. Compile the ISO inside that container
+          # Note: We use 'current' as the build flavor for Stream releases
+          docker run --rm --privileged -v $(pwd):/vyos -w /vyos vyos/vyos-build:2026.03 \
+          bash -c "./build-vyos-image iso --architecture amd64 --build-by 'Arsalan-ISP'"
+
+      - name: Generate Checksum
+        run: |
+          cd build
+          sha256sum *.iso > checksum.txt
+          echo "ISO Build Complete. Checksum generated."
+
+      - name: Upload ISO and Checksum
+        uses: actions/upload-artifact@v4
+        with:
+          name: VyOS-2026.03-Stream-ISO
+          path: |
+            build/*.iso
+            build/checksum.txt
